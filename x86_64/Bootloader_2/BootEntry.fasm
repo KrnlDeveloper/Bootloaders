@@ -1,0 +1,276 @@
+use16
+
+
+;//////////////// Conditional compilation constants //////////////////
+
+
+
+;//////////////// Constants //////////////////
+BOOT_ADDRESS = 07C00h
+STACK_ADDRESS = 09000h
+SECTOR_SIZE = 512
+
+org BOOT_ADDRESS
+
+BootEntry:
+	cli
+	mov AX, CS
+	mov DS, AX
+	mov ES, AX
+	mov SS, AX 
+
+	mov BP, STACK_ADDRESS
+	mov SP, BP
+
+	mov [DiskId], DL
+	sti
+
+	push Message
+	call DbgPrint
+
+	push Message3
+	call DbgPrint
+
+	;call getchar
+
+	;mov CX, SP
+	sub SP, 20h		; char buffer[32]
+
+	push SP
+	call gets	; gets(buffer)
+
+	push Message4
+	call DbgPrint
+
+	push SP
+	call DbgPrint
+
+	;add SP, 20h
+
+	sub SP, 10	; char buffer2[10]
+	;mov AX, SP
+	push 10
+	push SP - 2
+	call ReadFromKeyboard
+
+	push Message4
+	call DbgPrint
+
+	push SP
+	call DbgPrint
+
+	add SP, 20h
+	add SP, 10
+
+Exit:
+	cli
+	hlt
+
+
+;//////////////// char getchar() //////////////////
+getchar:
+	xor AX, AX
+	int 016h
+
+	mov AH, 0Eh
+	int 10h
+
+	ret
+
+
+;//////////////// void gets(char* Str) //////////////////
+;	Str -> [BP + 4]
+gets:
+	push BP
+	mov BP, SP
+
+	push AX
+	push SI
+	mov SI, [BP + 4]
+
+@@:
+	mov AX, 0
+	int 016h
+
+	mov AH, 0Eh
+	int 10h
+
+	cmp AL, 0Dh		;when Enter pressed
+	je @f
+
+	mov [SI], AL		
+	inc SI
+	jmp @b
+
+@@:
+	mov [SI], byte 00h
+
+	mov AH, 0Eh
+	mov AL, 0Ah
+	int 10h
+
+	mov AL, 0Dh
+	int 10h
+
+	pop SI
+	pop AX
+
+	mov SP, BP
+	pop BP
+
+	ret 2
+
+
+;//////////////// void memset(void* Dst, short Value, short Num) //////////////////
+;	Dst		-> [BP + 4]
+;	Value	-> [BP + 6]
+;	Num		-> [BP + 8]
+memset:
+	push BP
+	mov BP, SP
+
+	push AX
+	push DI
+	push CX
+
+	mov CX, [BP + 8]
+	mov AX, [BP + 6]
+	mov DI, [BP + 4]
+
+	rep stosb
+
+	pop CX
+	pop DI
+	pop AX
+
+	mov SP, BP
+	pop BP
+
+	ret 6
+
+
+;//////////////// short memcmp(void* Ptr1, void* Ptr2, short Num) //////////////////
+;	Ptr1	-> [BP + 4]
+;	Ptr2	-> [BP + 6]
+;	Num		-> [BP + 8]
+memcmp:
+	push BP
+	mov BP, SP
+
+	push SI
+	push DI
+	push CX
+
+	xor AX, AX
+
+	mov SI, [BP + 4]
+	mov DI, [BP + 6]
+	mov CX, [BP + 8]
+
+	repe cmpsb
+
+	jz @f
+	mov AX, 1
+
+@@
+	pop CX
+	pop DI
+	pop SI
+
+	mov SP, BP
+	pop BP
+
+	ret 6
+
+
+;//////////////// void ReadFromKeyboard(char* Data, short DataLength) //////////////////
+;	Data 		-> [BP + 4]
+;	DataLength  -> [BP + 6]
+ReadFromKeyboard:
+	push BP
+	mov BP, SP
+
+	push AX
+	push CX
+	push SI
+
+	mov CX, [BP + 6]
+	dec CX	; For '\0'
+
+	mov SI, [BP + 4]
+
+@@:
+	mov AX, 0
+	int 016h
+
+	mov AH, 0Eh
+	int 10h
+
+	cmp AL, 0Dh		;when Enter pressed
+	je @f
+
+	mov [SI], AL		
+	inc SI
+
+	dec CX
+	test CX, CX
+	jz @f
+	jmp @b
+
+@@:
+	mov [SI], byte 00h
+
+	mov AH, 0Eh
+	mov AL, 0Ah
+	int 10h
+
+	mov AL, 0Dh
+	int 10h
+
+	pop SI
+	pop CX
+	pop AX
+
+	mov SP, BP
+	pop BP
+	retn 4
+
+;//////////////// void DbgPrint(char* Str) //////////////////
+;	Str -> [BP + 4]
+DbgPrint:			
+	push BP
+	mov BP, SP
+
+	push SI
+	push AX
+
+	mov SI, [BP + 4]	; Str -> SI
+
+@@:
+	mov AH, 0Eh
+	mov AL, [SI]
+	test AL, AL
+	jz @f
+	int 10h
+	inc SI
+	jmp @b
+
+@@:
+	pop AX
+	pop SI
+
+	mov SP, BP
+	pop BP
+	retn 2
+
+
+;//////////////// Data: Sector 1 //////////////////
+DiskId db 00h
+
+Message db 'Simple bootloader executed', 0Ah, 0Dh, 00h
+Message2 db 'Press any key:', 0Ah, 0Dh, 00h
+Message3 db 'Enter the string:', 0Ah, 0Dh, 00h
+Message4 db 'Entered string: ', 0Ah, 0Dh, 00h
+
+times SECTOR_SIZE - 2 - ($ - $$) db 0
+db 0x55, 0xAA

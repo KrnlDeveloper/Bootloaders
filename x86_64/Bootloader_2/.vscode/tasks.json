@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build asm",
+            "type": "shell",
+            "command": "${config:PathToCompiler}\\FASM.EXE",
+            "args": [
+                "${file}",
+                
+                //Output file
+                "${fileDirname}\\${fileBasenameNoExtension}.boot"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

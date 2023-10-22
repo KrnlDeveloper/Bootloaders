@@ -43,6 +43,11 @@ BootEntry:
 	push 2
 	call LoadSectors
 
+	push MessageFromUser
+	push 1
+	push 2
+	call LoadSectors
+
 	;//////////////////// memcmp test ////////////////
 	push 4
 	push Data2
@@ -125,9 +130,7 @@ NotEqu4:
 	call DbgPrint
 
 Next4:
-	jmp Exit
-
-
+	;//////////////////// gets test ////////////////
 	;push Message3
 	;call DbgPrint
 
@@ -137,6 +140,7 @@ Next4:
 	sub SP, 20h		; char buffer[32]
 
 	push SP
+	;push MessageFromUser
 	call gets	; gets(buffer)
 
 	push Message4
@@ -145,22 +149,24 @@ Next4:
 	push SP
 	call DbgPrint
 
+	add SP, 20h
+
 	;add SP, 20h
 
-	sub SP, 10	; char buffer2[10]
+	;sub SP, 10	; char buffer2[10]
 	;mov AX, SP
-	push 10
-	push SP - 2
-	call ReadFromKeyboard
+	;push 10
+	;push SP - 2
+	;call ReadFromKeyboard
 
-	push Message4
-	call DbgPrint
+	;push Message4
+	;call DbgPrint
 
-	push SP
-	call DbgPrint
+	;push SP
+	;call DbgPrint
 
-	add SP, 20h
-	add SP, 10
+	;add SP, 20h
+	;add SP, 10
 
 Exit:
 	cli
@@ -218,7 +224,7 @@ gets:
 	mov SP, BP
 	pop BP
 
-	ret 2
+	retn 2
 
 
 
@@ -356,6 +362,8 @@ db 0x55, 0xAA
 ;//////////////// Data: Sector 2 //////////////////
 Sector2:
 
+MessageFromUser db 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h
+
 ;//////////////// void memset(void* Dst, short Value, short Num) //////////////////
 ;	Dst		-> [BP + 4]
 ;	Value	-> [BP + 6]
@@ -382,7 +390,7 @@ memset:
 	mov SP, BP
 	pop BP
 
-	ret 6
+	retn 6
 
 
 ;//////////////// short memcmp(void* Ptr1, void* Ptr2, short Num) //////////////////
@@ -418,7 +426,7 @@ memcmp:
 	mov SP, BP
 	pop BP
 
-	ret 6
+	retn 6
 
 
 
@@ -450,6 +458,6 @@ memcpy:
 	mov SP, BP
 	pop BP
 
-	ret 6
+	retn 6
 
 times 2*SECTOR_SIZE - ($ - $$) db 0

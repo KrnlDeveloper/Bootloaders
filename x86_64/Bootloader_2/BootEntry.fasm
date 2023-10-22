@@ -25,11 +25,111 @@ BootEntry:
 	mov [DiskId], DL
 	sti
 
-	push Message
+	;push Message
+	;call DbgPrint
+
+	push memcmp
+	push 1
+	push 2
+	call LoadSectors
+
+	push memcpy
+	push 1
+	push 2
+	call LoadSectors
+
+	push memset
+	push 1
+	push 2
+	call LoadSectors
+
+	;//////////////////// memcmp test ////////////////
+	push 4
+	push Data2
+	push Data1
+	call memcmp
+
+	test AX, AX
+	jnz NotEqu
+	
+	push MsgEqual
+	call DbgPrint
+	jmp Next
+
+NotEqu:
+	push MsgNotEqual
 	call DbgPrint
 
-	push Message3
+Next:
+	;//////////////////// memset test ////////////////
+	push 4
+	push 0AAh
+	push Data2
+	call memset
+
+	push 4
+	push Data2
+	push Data1
+	call memcmp
+
+	test AX, AX
+	jnz NotEqu2
+	
+	push MsgEqual
 	call DbgPrint
+	jmp Next2
+
+NotEqu2:
+	push MsgNotEqual
+	call DbgPrint
+
+Next2:
+	;//////////////////// memcpy test ////////////////
+	push 4
+	push Data3
+	push Data4
+	call memcpy
+
+	push 4
+	push Data3
+	push Data4
+	call memcmp
+
+	test AX, AX
+	jnz NotEqu3
+	
+	push MsgEqual
+	call DbgPrint
+	jmp Next3
+
+NotEqu3:
+	push MsgNotEqual
+	call DbgPrint
+
+Next3:
+	;//////////////////// getchar test ////////////////
+	push Message2
+	call DbgPrint
+
+	call getchar
+
+	cmp AL, 'A'
+	jnz NotEqu4
+	
+	push MsgEqual
+	call DbgPrint
+	jmp Next4
+
+NotEqu4:
+	push MsgNotEqual
+	call DbgPrint
+
+Next4:
+	jmp Exit
+
+
+	;push Message3
+	;call DbgPrint
 
 	;call getchar
 
@@ -121,67 +221,6 @@ gets:
 	ret 2
 
 
-;//////////////// void memset(void* Dst, short Value, short Num) //////////////////
-;	Dst		-> [BP + 4]
-;	Value	-> [BP + 6]
-;	Num		-> [BP + 8]
-memset:
-	push BP
-	mov BP, SP
-
-	push AX
-	push DI
-	push CX
-
-	mov CX, [BP + 8]
-	mov AX, [BP + 6]
-	mov DI, [BP + 4]
-
-	rep stosb
-
-	pop CX
-	pop DI
-	pop AX
-
-	mov SP, BP
-	pop BP
-
-	ret 6
-
-
-;//////////////// short memcmp(void* Ptr1, void* Ptr2, short Num) //////////////////
-;	Ptr1	-> [BP + 4]
-;	Ptr2	-> [BP + 6]
-;	Num		-> [BP + 8]
-memcmp:
-	push BP
-	mov BP, SP
-
-	push SI
-	push DI
-	push CX
-
-	xor AX, AX
-
-	mov SI, [BP + 4]
-	mov DI, [BP + 6]
-	mov CX, [BP + 8]
-
-	repe cmpsb
-
-	jz @f
-	mov AX, 1
-
-@@
-	pop CX
-	pop DI
-	pop SI
-
-	mov SP, BP
-	pop BP
-
-	ret 6
-
 
 ;//////////////// void ReadFromKeyboard(char* Data, short DataLength) //////////////////
 ;	Data 		-> [BP + 4]
@@ -264,13 +303,153 @@ DbgPrint:
 	retn 2
 
 
+
+;//////////////// void LoadSectors(short Sector, short NumOfSectors, void* Data) //////////////////
+;	Sector 		 -> [BP + 4]
+;	NumOfSectors -> [BP + 6]
+;	Data   		 -> [BP + 8]
+LoadSectors:
+	push BP
+	mov BP, SP
+
+	push AX
+	push BX
+	push CX
+	push DX
+
+	mov AH, 02h
+    mov AL, [BP + 6]
+    mov CH, 0  
+    mov CL, [BP + 4]
+	mov DH, 0
+    mov DL, [DiskId]
+    mov BX, [BP + 8]
+    int 013h
+
+	pop DX
+	pop CX
+	pop BX
+	pop AX
+
+	mov SP, BP
+	pop BP
+
+	retn 6
+
+
 ;//////////////// Data: Sector 1 //////////////////
 DiskId db 00h
-
-Message db 'Simple bootloader executed', 0Ah, 0Dh, 00h
+;Message db 'Simple bootloader executed', 0Ah, 0Dh, 00h
 Message2 db 'Press any key:', 0Ah, 0Dh, 00h
 Message3 db 'Enter the string:', 0Ah, 0Dh, 00h
 Message4 db 'Entered string: ', 0Ah, 0Dh, 00h
 
+Data1 db 0AAh, 0AAh, 0AAh, 0AAh
+Data2 db 00h, 00h, 00h, 00h
+Data3 db 0AAh, 0BBh, 0CCh, 0DDh
+Data4 db 00h, 00h, 00h, 00h 
+MsgEqual db 'Equal', 0Ah, 0Dh, 00h 
+MsgNotEqual db 'Not Equal', 0Ah, 0Dh, 00h 
 times SECTOR_SIZE - 2 - ($ - $$) db 0
 db 0x55, 0xAA
+
+;//////////////// Data: Sector 2 //////////////////
+Sector2:
+
+;//////////////// void memset(void* Dst, short Value, short Num) //////////////////
+;	Dst		-> [BP + 4]
+;	Value	-> [BP + 6]
+;	Num		-> [BP + 8]
+memset:
+	push BP
+	mov BP, SP
+
+	push AX
+	push DI
+	push CX
+
+	mov CX, [BP + 8]
+	mov AX, [BP + 6]
+	mov DI, [BP + 4]
+
+	cld
+	rep stosb
+
+	pop CX
+	pop DI
+	pop AX
+
+	mov SP, BP
+	pop BP
+
+	ret 6
+
+
+;//////////////// short memcmp(void* Ptr1, void* Ptr2, short Num) //////////////////
+;	Ptr1	-> [BP + 4]
+;	Ptr2	-> [BP + 6]
+;	Num		-> [BP + 8]
+memcmp:
+	push BP
+	mov BP, SP
+
+	push SI
+	push DI
+	push CX
+
+	xor AX, AX
+
+	mov SI, [BP + 4]
+	mov DI, [BP + 6]
+	mov CX, [BP + 8]
+
+	cld
+	repe cmpsb
+
+	;setz AL
+	jz @f 
+	mov AX, 1
+@@:
+
+	pop CX
+	pop DI
+	pop SI
+
+	mov SP, BP
+	pop BP
+
+	ret 6
+
+
+
+;//////////////// void* memcpy(void* Dst, void* Src, short Cnt) //////////////////
+;	Dst	-> [BP + 4]
+;	Src	-> [BP + 6]
+;	Cnt	-> [BP + 8]
+memcpy:
+	push BP
+	mov BP, SP
+
+	push SI
+	push DI
+	push CX
+
+	mov SI, [BP + 6]
+	mov DI, [BP + 4]
+	mov CX, [BP + 8]
+
+	cld
+	rep movsb
+
+	mov AX, DI
+
+	pop CX
+	pop DI
+	pop SI
+
+	mov SP, BP
+	pop BP
+
+	ret 6
+
+times 2*SECTOR_SIZE - ($ - $$) db 0

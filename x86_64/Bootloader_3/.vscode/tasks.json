@@ -2,9 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "FASM: build",
+            "label": "build asm",
             "type": "shell",
-            "command": ["${config:PathToCompiler}\\FASM.EXE"],
+            "command": "${config:PathToCompiler}\\FASM.EXE",
             "args": [
                 "${file}",
                 

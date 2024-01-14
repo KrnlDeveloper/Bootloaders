@@ -25,47 +25,56 @@ BootEntry:
 	mov [DiskId], DL
 	sti
 
-	mov CX, Message3
-    call DbgPrintFastcall
-
-	push Message
+	;if-else
+	push IfElseMsg
 	call DbgPrint
 
-    push Message2
-    call DbgPrintCdecl
-    add SP, 2
-
-	push 2
-	push 3
-	push 4
-	call FunStdcall
-
+	;char a = getchar();
 	xor AX, AX
+	call getchar
 
-	push 2
-	push 3
-	push 4
-	call FunCdecl
-	add SP, 6
-
+	;char b = getchar();
+	mov BX, AX
 	xor AX, AX
+	call getchar
 
-	mov BX, 4
-	mov CX, 3
-	mov DX, 2
-	call FunFastcall
-
-	mov [Result], AX
-
-	cmp [Result], 14
-	je @f
-	push NotEqualMsg
-	call DbgPrint
-	jmp Exit;
-	@@:
+	;if(a == b)
+	cmp AX, BX
+	jne @f
 	push EqualMsg
 	call DbgPrint
+	jmp Switch
 
+	;else
+@@:
+	push NotEqualMsg
+	call DbgPrint
+
+Switch:
+	;switch
+	push SwitchMsg
+	call DbgPrint
+
+	;for
+	push ForMsg
+	call DbgPrint
+
+	;for(int i = 0; i < 16; i++)
+
+	xor CX, CX	; i = 0
+	mov SI, AbcMsg
+
+For:
+	add SI, CX
+	push byte [SI]
+	call putc
+
+	inc CX		; i++
+	cmp CX, 15	; i < 16
+	jne For
+
+	;while
+	;do-while
 
 
 Exit:
@@ -73,61 +82,15 @@ Exit:
 	hlt
 
 
-;//////////////// short FunStdcall(short A, short B, short C) //////////////////
-;	(A + B) * C
-;	A -> [BP + 4]
-;	B -> [BP + 6]
-;	C -> [BP + 8]
-FunStdcall:
-	push BP
-	mov BP, SP
 
-	push CX
-	mov CX, [BP + 4]
-	add CX, [BP + 6]
-	mov AX, [BP + 8]
-	imul CX
-	
-	pop CX
+;//////////////// char getchar() //////////////////
+getchar:
+	xor AX, AX
+	int 016h
 
-	mov SP, BP
-	pop BP
-	retn 6
+	mov AH, 0Eh
+	int 10h
 
-
-;//////////////// short FunCdecl(short A, short B, short C) //////////////////
-;	(A + B) * C
-;	A -> [BP + 4]
-;	B -> [BP + 6]
-;	C -> [BP + 8]
-FunCdecl:
-	push BP
-	mov BP, SP
-
-	push CX
-	mov CX, [BP + 4]
-	add CX, [BP + 6]
-	mov AX, [BP + 8]
-	imul CX
-	
-	pop CX
-
-	mov SP, BP
-	pop BP
-	ret
-
-
-;//////////////// short FunFastcall(short A, short B, short C) //////////////////
-;	(A + B) * C
-;	A -> BX
-;	B -> CX
-;	C -> DX
-FunFastcall:
-
-	add BX, CX
-	mov AX, DX
-	imul BX
-	
 	ret
 
 
@@ -161,68 +124,20 @@ DbgPrint:
 
 
 
-;//////////////// void DbgPrintCdecl(char* Str) //////////////////
-;	Str -> [BP + 4]
-DbgPrintCdecl:			
-	push BP
-	mov BP, SP
-
-	push SI
-	push AX
-
-	mov SI, [BP + 4]	; Str -> SI
-
-@@:
-	mov AH, 0Eh
-	mov AL, [SI]
-	test AL, AL
-	jz @f
-	int 10h
-	inc SI
-	jmp @b
-
-@@:
-	pop AX
-	pop SI
-
-	mov SP, BP
-	pop BP
-	ret
-
-
-
-;//////////////// void DbgPrintFastcall(char* Str) //////////////////
-;	Str -> [CX]
-DbgPrintFastcall:			
-    push SI
-    mov SI, CX
-
-@@:
-	mov AH, 0Eh
-	mov AL, [SI]
-	test AL, AL
-	jz @f
-	int 10h
-	inc SI
-	jmp @b
-
-@@:
-	pop SI
-
-	ret
-
-
 ;//////////////// Data: Sector 1 //////////////////
 DiskId db 00h
 
 Result dw 00h
 
-Message db 'Dbg: STDCALL', 0Ah, 0Dh, 00h
-Message2 db 'Dbg: CDECL', 0Ah, 0Dh, 00h
-Message3 db 'Dbg: FASTCALL', 0Ah, 0Dh, 00h
+IfElseMsg db 'Dbg: if-else', 0Ah, 0Dh, 00h
+SwitchMsg db 'Dbg: switch', 0Ah, 0Dh, 00h
+ForMsg db 'Dbg: for', 0Ah, 0Dh, 00h
+WhileMsg db 'Dbg: while', 0Ah, 0Dh, 00h
+DoWhileMsg db 'Dbg: do-while', 0Ah, 0Dh, 00h
 
 EqualMsg db 'EQUAL !', 0Ah, 0Dh, 00h
 NotEqualMsg db 'NOT EQUAL', 0Ah, 0Dh, 00h
+AbcMsg db 'ABCDEFGHIJKLMN', 0Ah, 0Dh, 00h
 
 times SECTOR_SIZE - 2 - ($ - $$) db 0
 db 0x55, 0xAA

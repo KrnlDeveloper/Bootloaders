@@ -227,6 +227,25 @@ gets:
 	retn 2
 
 
+;//////////////// void putc(char Ch) //////////////////
+;	Str -> [BP + 4]
+putc:
+	push BP
+	mov BP, SP
+
+	push AX
+
+	mov AH, 0Eh
+	mov AL, [BP + 4]
+
+	int 10h
+
+	pop AX
+	
+	mov SP, BP
+	pop BP
+
+	retn 2
 
 ;//////////////// void ReadFromKeyboard(char* Data, short DataLength) //////////////////
 ;	Data 		-> [BP + 4]

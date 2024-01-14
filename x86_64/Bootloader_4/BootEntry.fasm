@@ -1,0 +1,129 @@
+use16
+
+
+;//////////////// Conditional compilation constants //////////////////
+
+
+
+;//////////////// Constants //////////////////
+BOOT_ADDRESS = 07C00h
+STACK_ADDRESS = 09000h
+SECTOR_SIZE = 512
+
+org BOOT_ADDRESS
+
+BootEntry:
+	cli
+	mov AX, CS
+	mov DS, AX
+	mov ES, AX
+	mov SS, AX 
+
+	mov BP, STACK_ADDRESS
+	mov SP, BP
+
+	mov [DiskId], DL
+	sti
+
+	push ActionMsg
+	call DbgPrint
+
+	xor AX, AX
+	call getchar
+
+	
+
+Exit:
+	push ExitMsg
+	call DbgPrint
+
+	cli
+	hlt
+
+
+
+;//////////////// void DbgPrint(char* Str) //////////////////
+;	Str -> [BP + 4]
+DbgPrint:			
+	push BP
+	mov BP, SP
+
+	push SI
+	push AX
+
+	mov SI, [BP + 4]	; Str -> SI
+
+@@:
+	mov AH, 0Eh
+	mov AL, [SI]
+	test AL, AL
+	jz @f
+	int 10h
+	inc SI
+	jmp @b
+
+@@:
+	pop AX
+	pop SI
+
+	mov SP, BP
+	pop BP
+	retn 2
+
+
+;//////////////// char getchar() //////////////////
+getchar:
+	xor AX, AX
+	int 016h
+
+	mov AH, 0Eh
+	int 10h
+
+	ret
+
+
+;//////////////// void Delay(short Time) //////////////////
+;	Time -> [BP + 4]
+Delay:
+	retn 2
+
+;//////////////// void Reboot() //////////////////
+Reboot:
+	push RebootMsg
+	call DbgPrint
+
+	ret
+
+;//////////////// void SoftReboot() //////////////////
+SoftReboot:
+	push SoftRebootMsgRebootMsg
+	call DbgPrint
+
+	ret
+
+;//////////////// void Shutdown() //////////////////
+Shutdown:
+	push ShutdownMsg
+	call DbgPrint
+
+	ret
+
+;//////////////// void Halt() //////////////////
+Halt:
+	push HaltMsg
+	call DbgPrint
+
+	ret
+
+;//////////////// Data: Sector 1 //////////////////
+DiskId db 00h
+
+ActionMsg db '0 - Exit, 1 - Reboot, 2 - SoftReboot, 3 - Shutdown, 4 - Halt', 0Ah, 0Dh, 00h
+ExitMsg db 'Dbg: Exit called', 0Ah, 0Dh, 00h
+RebootMsg db 'Dbg: Reboot called', 0Ah, 0Dh, 00h
+SoftRebootMsg db 'Dbg: SoftReboot called', 0Ah, 0Dh, 00h
+ShutdownMsg db 'Dbg: Shutdown called', 0Ah, 0Dh, 00h
+HaltMsg db db 'Dbg: Halt called', 0Ah, 0Dh, 00h
+
+times SECTOR_SIZE - 2 - ($ - $$) db 0
+db 0x55, 0xAA

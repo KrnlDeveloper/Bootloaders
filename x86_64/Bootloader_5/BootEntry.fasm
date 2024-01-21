@@ -1,0 +1,68 @@
+use16
+
+
+;//////////////// Conditional compilation constants //////////////////
+
+
+
+;//////////////// Constants //////////////////
+BOOT_ADDRESS = 07C00h
+STACK_ADDRESS = 09000h
+SECTOR_SIZE = 512
+
+org BOOT_ADDRESS
+
+BootEntry:
+	cli
+	mov AX, CS
+	mov DS, AX
+	mov ES, AX
+	mov SS, AX 
+
+	mov BP, STACK_ADDRESS
+	mov SP, BP
+
+	mov [DiskId], DL
+	sti
+
+	
+Exit:
+	cli
+	hlt
+
+
+;//////////////// void DbgPrint(char* Str) //////////////////
+;	Str -> [BP + 4]
+DbgPrint:			
+	push BP
+	mov BP, SP
+
+	push SI
+	push AX
+
+	mov SI, [BP + 4]	; Str -> SI
+
+@@:
+	mov AH, 0Eh
+	mov AL, [SI]
+	test AL, AL
+	jz @f
+	int 10h
+	inc SI
+	jmp @b
+
+@@:
+	pop AX
+	pop SI
+
+	mov SP, BP
+	pop BP
+	retn 2
+
+
+
+;//////////////// Data: Sector 1 //////////////////
+DiskId db 00h
+
+times SECTOR_SIZE - 2 - ($ - $$) db 0
+db 0x55, 0xAA

@@ -38,30 +38,30 @@ BootEntry:
 	push 2
 	call LoadSectors
 
-	push Delay
-	push 1
-	push 2
-	call LoadSectors
+	;push Delay
+	;push 1
+	;push 2
+	;call LoadSectors
 
-	push Reboot
-	push 1
-	push 2
-	call LoadSectors
+	;push Reboot
+	;push 1
+	;push 2
+	;call LoadSectors
 
-	push SoftReboot
-	push 1
-	push 2
-	call LoadSectors
+	;push SoftReboot
+	;push 1
+	;push 2
+	;call LoadSectors
 
-	push Shutdown
-	push 1
-	push 2
-	call LoadSectors
+	;push Shutdown
+	;push 1
+	;push 2
+	;call LoadSectors
 
-	push Halt
-	push 1
-	push 2
-	call LoadSectors
+	;push Halt
+	;push 1
+	;push 2
+	;call LoadSectors
 
 
 Action:
@@ -134,7 +134,6 @@ Exit:
 
 	cli
 	hlt
-
 
 
 ;//////////////// void DbgPrint(char* Str) //////////////////
@@ -277,6 +276,7 @@ Delay:
 
 	retn 4
 
+
 ;//////////////// void Reboot() //////////////////
 Reboot:
 	push RebootMsg
@@ -299,6 +299,7 @@ Reboot:
 
 	ret
 
+
 ;//////////////// void SoftReboot() //////////////////
 SoftReboot:
 	push SoftRebootMsg
@@ -317,6 +318,7 @@ SoftReboot:
 	pop BP
 
 	ret
+
 
 ;//////////////// void Shutdown() //////////////////
 Shutdown:
@@ -349,37 +351,6 @@ Shutdown:
 
 	ret
 
-;//////////////// void ShutDown2() //////////////////
-;not working
-;ShutDown2:
-;	push BP
-;	mov BP, SP
-;
-;	push AX
-;	push BX
-;	push CX
-;	push SS
-;	push SP
-;
-;	mov AX, 1000h
-;	mov SS, AX
-;
-;	mov SP, 0F000h
-;	mov AX, 5307h
-;	mov BX, 0001h
-;	mov CX, 0003h
-;	int 15h
-;
-;	pop SP
-;	pop SS
-;	pop CX
-;	pop BX
-;	pop AX
-;
-;	mov SP, BP
-;	pop BP
-;
-;	ret
 
 ;//////////////// void Halt() //////////////////
 Halt:
@@ -390,6 +361,7 @@ Halt:
 	push 001Eh
 	call Delay
 
+	cli
 	hlt
 
 	ret

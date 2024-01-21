@@ -25,13 +25,104 @@ BootEntry:
 	mov [DiskId], DL
 	sti
 
+	push StartMsg
+	call DbgPrint
+
+	;push getchar
+	;push 2
+	;push 2
+	;call LoadSectors
+
+	push putc
+	push 1
+	push 2
+	call LoadSectors
+
+	push Delay
+	push 1
+	push 2
+	call LoadSectors
+
+	push Reboot
+	push 1
+	push 2
+	call LoadSectors
+
+	push SoftReboot
+	push 1
+	push 2
+	call LoadSectors
+
+	push Shutdown
+	push 1
+	push 2
+	call LoadSectors
+
+	push Halt
+	push 1
+	push 2
+	call LoadSectors
+
+
+Action:
 	push ActionMsg
 	call DbgPrint
 
 	xor AX, AX
 	call getchar
 
-	
+	push 00Ah
+	call putc
+
+	push 00Dh
+	call putc
+
+	cmp AL, '0'
+	je CaseExit
+
+	cmp AL, '1'
+	je CaseReboot
+
+	cmp AL, '2'
+	je CaseSoftReboot
+
+	cmp AL, '3'
+	je CaseShutdown
+
+	cmp AL, '4'
+	je CaseHalt
+
+	jmp CaseDefault
+
+CaseExit:
+	call Exit
+	jmp Done
+
+CaseReboot:
+	call Reboot
+	jmp Done
+
+CaseSoftReboot:
+	call SoftReboot
+	jmp Done
+
+CaseShutdown:
+	call Shutdown
+	jmp Done
+
+CaseHalt:
+	call Halt
+	jmp Done
+
+CaseDefault:
+	push UnknownMsg
+	call DbgPrint
+
+	jmp Action
+
+Done:
+	push DoneMsg
+	call DbgPrint
 
 Exit:
 	push ExitMsg
@@ -75,6 +166,39 @@ DbgPrint:
 	retn 2
 
 
+;//////////////// void LoadSectors(short Sector, short NumOfSectors, void* Data) //////////////////
+;	Sector 		 -> [BP + 4]
+;	NumOfSectors -> [BP + 6]
+;	Data   		 -> [BP + 8]
+LoadSectors:
+	push BP
+	mov BP, SP
+
+	push AX
+	push BX
+	push CX
+	push DX
+
+	mov AH, 02h
+    mov AL, [BP + 6]
+    mov CH, 0  
+    mov CL, [BP + 4]
+	mov DH, 0
+    mov DL, [DiskId]
+    mov BX, [BP + 8]
+    int 013h
+
+	pop DX
+	pop CX
+	pop BX
+	pop AX
+
+	mov SP, BP
+	pop BP
+
+	retn 6
+
+
 ;//////////////// char getchar() //////////////////
 getchar:
 	xor AX, AX
@@ -84,6 +208,46 @@ getchar:
 	int 10h
 
 	ret
+
+
+;//////////////// Data: Sector 1 //////////////////
+DiskId db 00h
+
+StartMsg db 'Simple Bootloader started', 0Ah, 0Dh, 00h
+ActionMsg db '0 - Exit, 1 - Reboot, 2 - SoftReboot, 3 - Shutdown, 4 - Halt', 0Ah, 0Dh, 00h
+ExitMsg db 'Dbg: Exit called', 0Ah, 0Dh, 00h
+RebootMsg db 'Dbg: Reboot called', 0Ah, 0Dh, 00h
+SoftRebootMsg db 'Dbg: SoftReboot called', 0Ah, 0Dh, 00h
+ShutdownMsg db 'Dbg: Shutdown called', 0Ah, 0Dh, 00h
+HaltMsg db 'Dbg: Halt called', 0Ah, 0Dh, 00h
+UnknownMsg db 'Unknown action specified', 0Ah, 0Dh, 00h
+DoneMsg db 'Unreachable code', 0Ah, 0Dh, 00h
+
+times SECTOR_SIZE - 2 - ($ - $$) db 0
+db 0x55, 0xAA
+
+
+;//////////////// Data: Sector 2 //////////////////
+
+;//////////////// void putc(char Ch) //////////////////
+;	Str -> [BP + 4]
+putc:
+	push BP
+	mov BP, SP
+
+	push AX
+
+	mov AH, 0Eh
+	mov AL, [BP + 4]
+
+	int 10h
+
+	pop AX
+	
+	mov SP, BP
+	pop BP
+
+	retn 2
 
 
 ;//////////////// void Delay(short DelayHighPart, short DelayLowPart) //////////////////
@@ -137,7 +301,7 @@ Reboot:
 
 ;//////////////// void SoftReboot() //////////////////
 SoftReboot:
-	push SoftRebootMsgRebootMsg
+	push SoftRebootMsg
 	call DbgPrint
 
 	push 8480h
@@ -187,35 +351,35 @@ Shutdown:
 
 ;//////////////// void ShutDown2() //////////////////
 ;not working
-ShutDown2:
-	push BP
-	mov BP, SP
-
-	push AX
-	push BX
-	push CX
-	push SS
-	push SP
-
-	mov AX, 1000h
-	mov SS, AX
-
-	mov SP, 0F000h
-	mov AX, 5307h
-	mov BX, 0001h
-	mov CX, 0003h
-	int 15h
-
-	pop SP
-	pop SS
-	pop CX
-	pop BX
-	pop AX
-
-	mov SP, BP
-	pop BP
-
-	ret
+;ShutDown2:
+;	push BP
+;	mov BP, SP
+;
+;	push AX
+;	push BX
+;	push CX
+;	push SS
+;	push SP
+;
+;	mov AX, 1000h
+;	mov SS, AX
+;
+;	mov SP, 0F000h
+;	mov AX, 5307h
+;	mov BX, 0001h
+;	mov CX, 0003h
+;	int 15h
+;
+;	pop SP
+;	pop SS
+;	pop CX
+;	pop BX
+;	pop AX
+;
+;	mov SP, BP
+;	pop BP
+;
+;	ret
 
 ;//////////////// void Halt() //////////////////
 Halt:
@@ -230,15 +394,5 @@ Halt:
 
 	ret
 
-;//////////////// Data: Sector 1 //////////////////
-DiskId db 00h
 
-ActionMsg db '0 - Exit, 1 - Reboot, 2 - SoftReboot, 3 - Shutdown, 4 - Halt', 0Ah, 0Dh, 00h
-ExitMsg db 'Dbg: Exit called', 0Ah, 0Dh, 00h
-RebootMsg db 'Dbg: Reboot called', 0Ah, 0Dh, 00h
-SoftRebootMsg db 'Dbg: SoftReboot called', 0Ah, 0Dh, 00h
-ShutdownMsg db 'Dbg: Shutdown called', 0Ah, 0Dh, 00h
-HaltMsg db db 'Dbg: Halt called', 0Ah, 0Dh, 00h
-
-times SECTOR_SIZE - 2 - ($ - $$) db 0
-db 0x55, 0xAA
+times 2*SECTOR_SIZE - ($ - $$) db 0

@@ -91,7 +91,8 @@ Switch:
 
 	cmp AL, '7'
 	je Case7
-	jne CaseDefault
+	
+	jmp CaseDefault
 
 Case0:
 	push '0'

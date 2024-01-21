@@ -58,32 +58,92 @@ BootEntry:
 
 ; ============== switch ==============
 Switch:
-	;switch
+
 	push SwitchMsg
+	call DbgPrint
+
+	; a = getchar()
+	; switch(a)
+	; {
+	;     case 0: putc('0'); break;
+	;     ...
+	;     default: printf("Unknown button");
+	; }
+	; printf(" is pressed\r\n");
+
+	xor AX, AX
+	call getchar
+
+	push 00Ah
+	call putc
+
+	push 00Dh
+	call putc
+
+	cmp AL, '0'
+	je Case0
+
+	cmp AL, '1'
+	je Case1
+
+	cmp AL, '3'
+	je Case3
+
+	cmp AL, '7'
+	je Case7
+	jne CaseDefault
+
+Case0:
+	push '0'
+	call putc
+
+	jmp Done
+
+Case1:
+	push '1'
+	call putc
+
+	jmp Done
+
+Case3:
+	push '3'
+	call putc
+
+	jmp Done
+
+Case7:
+	push '7'
+	call putc
+
+	jmp Done
+
+CaseDefault:
+	push CaseDefaultMsg
+	call DbgPrint
+
+Done:
+	push CaseMsg
 	call DbgPrint
 
 ; ============== for ==============
 	push ForMsg
 	call DbgPrint
 
-	;for(int i = 0; i < 16; i++)
+	; for(int i = 0; i < 16; i++)
 
+	xor AX, AX
 	xor CX, CX	; i = 0
 	mov SI, AbcMsg
 
-	xor AX, AX
-
-For:
-	;add SI, CX
+ForLoop:
 	mov AL, [SI]
 	push AX
 	call putc
 
 	inc CX		; i++
 	inc SI
-	cmp CX, 15	; i < 16
-	jne For
-
+	cmp CX, 16	; i < 16
+	jne ForLoop
 
 ; ============== for (effective) ==============
 	push ForEffectiveMsg
@@ -97,16 +157,33 @@ For:
 	xor AX, AX
 
 	; while(str[i] != 0) {  putc(str[i]); }
-While:
+WhileLoop:
 	mov AL, [SI]
+
+	cmp AL, 0		; end of line
+	je @f
+
 	push AX
 	call putc
 
-	cmp AL, 0
+	inc SI
+
+	jmp WhileLoop
 	
+@@:
 
 ; ============== do-while ==============
+	push DoWhileMsg
+	call DbgPrint
 
+DoWhileLoop:
+	
+	; do { a = getchar(); } while(a != 'q')
+	xor AX, AX
+	call getchar
+
+	cmp AL, 'q'
+	jne DoWhileLoop
 
 Exit:
 	cli
@@ -190,7 +267,9 @@ DoWhileMsg db 'Dbg: do-while', 0Ah, 0Dh, 00h
 
 EqualMsg db 0Ah, 0Dh,'EQUAL !', 0Ah, 0Dh, 00h
 NotEqualMsg db 0Ah, 0Dh, 'NOT EQUAL', 0Ah, 0Dh, 00h
-AbcMsg db 'ABCDEFGHIJKLMN', 0Dh, 0Ah, 00h
+AbcMsg db 'ABCDEFGHIJKLMN', 0Ah, 0Dh, 00h
+CaseMsg db ' is pressed', 0Ah, 0Dh, 00h
+CaseDefaultMsg db 'Unknown button', 00h
 
 times SECTOR_SIZE - 2 - ($ - $$) db 0
 db 0x55, 0xAA

@@ -25,13 +25,19 @@ BootEntry:
 	mov [DiskId], DL
 	sti
 
-	;if-else
+; ============== if-else ==============
 	push IfElseMsg
 	call DbgPrint
 
 	;char a = getchar();
 	xor AX, AX
 	call getchar
+
+	push 00Ah
+	call putc
+
+	push 00Dh
+	call putc
 
 	;char b = getchar();
 	mov BX, AX
@@ -50,12 +56,13 @@ BootEntry:
 	push NotEqualMsg
 	call DbgPrint
 
+; ============== switch ==============
 Switch:
 	;switch
 	push SwitchMsg
 	call DbgPrint
 
-	;for
+; ============== for ==============
 	push ForMsg
 	call DbgPrint
 
@@ -64,17 +71,41 @@ Switch:
 	xor CX, CX	; i = 0
 	mov SI, AbcMsg
 
+	xor AX, AX
+
 For:
-	add SI, CX
-	push byte [SI]
+	;add SI, CX
+	mov AL, [SI]
+	push AX
 	call putc
 
 	inc CX		; i++
+	inc SI
 	cmp CX, 15	; i < 16
 	jne For
 
-	;while
-	;do-while
+
+; ============== for (effective) ==============
+	push ForEffectiveMsg
+	call DbgPrint
+
+; ============== while ==============
+	push WhileMsg
+	call DbgPrint
+
+	mov SI, AbcMsg
+	xor AX, AX
+
+	; while(str[i] != 0) {  putc(str[i]); }
+While:
+	mov AL, [SI]
+	push AX
+	call putc
+
+	cmp AL, 0
+	
+
+; ============== do-while ==============
 
 
 Exit:
@@ -92,6 +123,27 @@ getchar:
 	int 10h
 
 	ret
+
+
+;//////////////// void putc(char Ch) //////////////////
+;	Str -> [BP + 4]
+putc:
+	push BP
+	mov BP, SP
+
+	push AX
+
+	mov AH, 0Eh
+	mov AL, [BP + 4]
+
+	int 10h
+
+	pop AX
+	
+	mov SP, BP
+	pop BP
+
+	retn 2
 
 
 ;//////////////// void DbgPrint(char* Str) //////////////////
@@ -132,12 +184,13 @@ Result dw 00h
 IfElseMsg db 'Dbg: if-else', 0Ah, 0Dh, 00h
 SwitchMsg db 'Dbg: switch', 0Ah, 0Dh, 00h
 ForMsg db 'Dbg: for', 0Ah, 0Dh, 00h
+ForEffectiveMsg db 'Dbg: for (effective)', 0Ah, 0Dh, 00h
 WhileMsg db 'Dbg: while', 0Ah, 0Dh, 00h
 DoWhileMsg db 'Dbg: do-while', 0Ah, 0Dh, 00h
 
-EqualMsg db 'EQUAL !', 0Ah, 0Dh, 00h
-NotEqualMsg db 'NOT EQUAL', 0Ah, 0Dh, 00h
-AbcMsg db 'ABCDEFGHIJKLMN', 0Ah, 0Dh, 00h
+EqualMsg db 0Ah, 0Dh,'EQUAL !', 0Ah, 0Dh, 00h
+NotEqualMsg db 0Ah, 0Dh, 'NOT EQUAL', 0Ah, 0Dh, 00h
+AbcMsg db 'ABCDEFGHIJKLMN', 0Dh, 0Ah, 00h
 
 times SECTOR_SIZE - 2 - ($ - $$) db 0
 db 0x55, 0xAA

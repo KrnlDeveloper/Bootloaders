@@ -37,6 +37,10 @@ Exit:
 	push ExitMsg
 	call DbgPrint
 
+	push 8480h
+	push 001Eh
+	call Delay
+
 	cli
 	hlt
 
@@ -82,15 +86,52 @@ getchar:
 	ret
 
 
-;//////////////// void Delay(short Time) //////////////////
+;//////////////// void Delay(short DelayHighPart, short DelayLowPart) //////////////////
 ;	Time -> [BP + 4]
+;	DelayHighPart -> [BP + 4]
+;	DelayLowPart  -> [BP + 6]
 Delay:
-	retn 2
+	push BP
+	mov BP, SP
+
+	push AX
+	push CX
+	push DX
+
+	mov CX, word [BP + 4]
+	mov DX, word [BP + 6]
+
+	mov AX, 08600h
+	int 15h
+
+	pop DX
+	pop CX
+	pop AX
+
+	mov SP, BP
+	pop BP
+
+	retn 4
 
 ;//////////////// void Reboot() //////////////////
 Reboot:
 	push RebootMsg
 	call DbgPrint
+
+	push 8480h
+	push 001Eh
+	call Delay
+
+	push BP
+	mov BP, SP
+
+	mov AX, 0040h
+	mov DS, AX
+	mov word [0072h], 1234h
+	jmp 0F000h:0FFF0h
+
+	mov SP, BP
+	pop BP
 
 	ret
 
@@ -99,6 +140,18 @@ SoftReboot:
 	push SoftRebootMsgRebootMsg
 	call DbgPrint
 
+	push 8480h
+	push 001Eh
+	call Delay
+
+	push BP
+	mov BP, SP
+
+	int 19h
+
+	mov SP, BP
+	pop BP
+
 	ret
 
 ;//////////////// void Shutdown() //////////////////
@@ -106,12 +159,74 @@ Shutdown:
 	push ShutdownMsg
 	call DbgPrint
 
+	push 8480h
+	push 001Eh
+	call Delay
+
+	push BP
+	mov BP, SP
+
+	mov AX, 05301h
+	xor BX, BX
+	int 15h
+
+	mov AX, 530Eh
+	xor BX, BX
+	mov CX, 0102h
+	int 15h
+
+	mov AX, 5307h
+	mov BX, 0001h
+	mov CX, 0003h
+	int 15h
+
+	mov SP, BP
+	pop BP
+
+	ret
+
+;//////////////// void ShutDown2() //////////////////
+;not working
+ShutDown2:
+	push BP
+	mov BP, SP
+
+	push AX
+	push BX
+	push CX
+	push SS
+	push SP
+
+	mov AX, 1000h
+	mov SS, AX
+
+	mov SP, 0F000h
+	mov AX, 5307h
+	mov BX, 0001h
+	mov CX, 0003h
+	int 15h
+
+	pop SP
+	pop SS
+	pop CX
+	pop BX
+	pop AX
+
+	mov SP, BP
+	pop BP
+
 	ret
 
 ;//////////////// void Halt() //////////////////
 Halt:
 	push HaltMsg
 	call DbgPrint
+
+	push 8480h
+	push 001Eh
+	call Delay
+
+	hlt
 
 	ret
 

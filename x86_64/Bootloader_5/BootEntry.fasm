@@ -7,8 +7,17 @@ use16
 
 ;//////////////// Constants //////////////////
 BOOT_ADDRESS = 07C00h
-STACK_ADDRESS = 09000h
+BOOT_STACK_ADDRESS = 09000h
 SECTOR_SIZE = 512
+
+STACK_BASE_ADDRESS = 0200000h
+USER_PM_CODE_BASE_ADDRESS = 0400000h
+USER_PM_CODE_SIZE = USER_PM_CODE_END - USER_PM_CODE_BASE_ADDRESS
+
+CODE_SELECTOR = 008h 
+DATA_SELECTOR = 010h
+VIDEO_SELECTOR = 018h
+
 
 org BOOT_ADDRESS
 
@@ -19,11 +28,86 @@ BootEntry:
 	mov ES, AX
 	mov SS, AX 
 
-	mov BP, STACK_ADDRESS
+	mov BP, BOOT_STACK_ADDRESS
 	mov SP, BP
 
 	mov [DiskId], DL
 	sti
+
+	; Open A20 line
+	in AL, 092h
+	or AL, 002h
+	out 092h, AL
+
+	; Calculation of protected mode entry point
+	xor EAX, EAX
+	mov AX, CS
+	shl EAX, 4
+	add EAX, PROTECTED_MODE_ENTRY_POINT
+	mov [ENTRY_OFF], EAX
+
+	xor EAX, EAX
+	mov AX, CS
+	shl EAX, 4
+	add AX, GDT
+
+	mov DWORD [GDTR + 2], EAX
+	lgdt FWORD [GDTR]
+
+	cli
+	in AL, 070h
+	or AL, 080h
+	out 070h, AL
+
+	mov EAX, CR0
+	or AL, 1
+	mov CR0, EAX
+
+	db 066h
+	db 0EAh
+
+	ENTRY_OFF dd PROTECTED_MODE_ENTRY_POINT
+	dw CODE_SELECTOR
+
+	align 8
+
+	GDT:
+	;XXXXX
+
+	label GDTR FWORD
+	dw GDT_SIZE - 1
+	dd ?
+
+use32
+
+PROTECTED_MODE_ENTRY_POINT:
+	mov AX, DATA_SELECTOR
+	mov DS, AX
+	mov ES, AX
+	mov SS, AX
+	mov ESP, STACK_BASE_ADDRESS
+
+	call Delta
+
+Delta:
+	pop EBX
+	add EBX, USER_PM_CODE_START - Delta
+
+	mov ESI, EBX
+	mov EDI, USER_PM_CODE_BASE_ADDRESS
+	mov ECX, USER_PM_CODE_SIZE
+	rep movsb
+
+	mov EAX, USER_PM_CODE_BASE_ADDRESS
+	jmp EAX
+
+USER_PM_CODE_START:
+ORG USER_PM_CODE_BASE_ADDRESS
+
+	include 'PmCode.asm';
+
+USER_PM_CODE_END:
+
 
 	
 Exit:
